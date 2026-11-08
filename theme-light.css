@@ -1,0 +1,18 @@
+/* GitHub light palette. Selected with --light (the default). */
+:root {
+  color-scheme: light;
+
+  --page-bg: #ffffff;
+
+  --hl-keyword: #cf222e;
+  --hl-datatype: #953800;
+  --hl-number: #0550ae;
+  --hl-string: #0a3069;
+  --hl-comment: #57606a;
+  --hl-function: #8250df;
+  --hl-variable: #953800;
+  --hl-attribute: #0550ae;
+  --hl-warning: #953800;
+  --hl-error: #82071e;
+  --hl-error-bg: #ffebe9;
+}

@@ -1,0 +1,25 @@
+/* ------------------------------------------------------------------
+ * Shared page layout, loaded after the selected theme.
+ *
+ * Theme files (theme-light.css / theme-dark.css) provide the colours,
+ * including --page-bg. Keep layout rules here so both schemes share them.
+ * ------------------------------------------------------------------ */
+
+html {
+  /* Page background behind the centred article. */
+  background-color: var(--page-bg, #ffffff);
+}
+
+.markdown-body {
+  box-sizing: border-box;
+  max-width: 980px;
+  min-width: 200px;
+  margin: 0 auto;
+  padding: 45px;
+}
+
+@media (max-width: 767px) {
+  .markdown-body {
+    padding: 15px;
+  }
+}

@@ -1,0 +1,160 @@
+#!/usr/bin/env bash
+#
+# mdpreview - render a Markdown file to a self-contained HTML preview
+# styled like GitHub, then open it in a browser.
+#
+# Uses pandoc plus the GitHub stylesheets, syntax palette, template and
+# page layout that live next to this script. The HTML is written to a
+# temporary directory only.
+
+set -euo pipefail
+
+readonly HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly CUSTOM_CSS="$HERE/custom.css"
+readonly HIGHLIGHT_CSS="$HERE/highlight.css"
+readonly TEMPLATE="$HERE/template.html"
+readonly DEFAULT_TTL=60
+
+usage() {
+    cat <<EOF
+Usage: ${0##*/} [OPTIONS] FILE.md
+
+Render FILE.md to a temporary, self-contained HTML page styled like GitHub
+and open it in the default browser.
+
+Options:
+  --toc        Include a table of contents (3 levels deep).
+  --light      Use the GitHub light theme (default).
+  --dark       Use the GitHub dark theme.
+  --keep       Keep the generated HTML and print its path.
+  --no-open    Do not open a browser; implies --keep.
+  -h, --help   Show this help and exit.
+
+Environment:
+  BROWSER       Command used to open the page instead of xdg-open/gio/open.
+  MDVIEW_SCHEME Colour scheme: light or dark (flags take precedence).
+  MDVIEW_TTL    Seconds before the temp file is removed (default: $DEFAULT_TTL).
+
+The HTML is written to a temp directory and removed automatically, so no
+preview files are left in the current directory.
+EOF
+}
+
+die() {
+    printf '%s: %s\n' "${0##*/}" "$*" >&2
+    exit 1
+}
+
+toc=0
+keep=0
+open=1
+scheme="${MDVIEW_SCHEME:-light}"
+src=
+
+while (($#)); do
+    case $1 in
+        --toc)      toc=1 ;;
+        --light)    scheme=light ;;
+        --dark)     scheme=dark ;;
+        --keep)     keep=1 ;;
+        --no-open)  open=0 ;;
+        -h|--help)  usage; exit 0 ;;
+        --)
+            shift
+            while (($#)); do
+                [[ -z $src ]] || die "only one input file is supported"
+                src=$1
+                shift
+            done
+            break
+            ;;
+        -*)         die "unknown option: $1 (try --help)" ;;
+        *)
+            [[ -z $src ]] || die "only one input file is supported"
+            src=$1
+            ;;
+    esac
+    shift
+done
+
+[[ -n $src ]] || { usage >&2; exit 2; }
+case $scheme in
+    light|dark) ;;
+    *) die "MDVIEW_SCHEME must be 'light' or 'dark' (got: $scheme)" ;;
+esac
+
+markdown_css="$HERE/github-markdown-$scheme.css"
+theme="$HERE/theme-$scheme.css"
+
+[[ -f $src ]] || die "no such file: $src"
+[[ -r $src ]] || die "cannot read: $src"
+command -v pandoc >/dev/null 2>&1 || die "pandoc not found in PATH"
+[[ -f $markdown_css ]] || die "missing stylesheet: $markdown_css"
+[[ -f $theme ]] || die "missing theme: $theme"
+[[ -f $HIGHLIGHT_CSS ]] || die "missing stylesheet: $HIGHLIGHT_CSS"
+[[ -f $CUSTOM_CSS ]] || die "missing stylesheet: $CUSTOM_CSS"
+[[ -f $TEMPLATE ]] || die "missing template: $TEMPLATE"
+
+# Resolve to an absolute path and remember the source directory so that
+# relative image links keep working regardless of the current directory.
+src_dir="$(cd -- "$(dirname -- "$src")" && pwd)"
+src="$src_dir/$(basename -- "$src")"
+title="$(basename -- "$src")"
+[[ $title == *.* && -n ${title%.*} ]] && title="${title%.*}"
+
+tmp="$(mktemp -d "${TMPDIR:-/tmp}/mdpreview.XXXXXX")" || die "cannot create temp dir"
+out="$tmp/preview.html"
+
+cleanup() { rm -rf -- "$tmp"; }
+trap cleanup EXIT
+
+args=(
+    --from gfm
+    --to html5
+    --standalone
+    --template "$TEMPLATE"
+    --embed-resources
+    --syntax-highlighting=pygments
+    --resource-path "$src_dir"
+    --metadata "title=$title"
+    --variable "scheme=$scheme"
+    --css "$theme"
+    --css "$markdown_css"
+    --css "$HIGHLIGHT_CSS"
+    --css "$CUSTOM_CSS"
+)
+((toc)) && args+=(--toc --toc-depth=3)
+
+pandoc "$src" "${args[@]}" --output "$out" || die "pandoc failed"
+
+# The browser opens asynchronously, so the temp directory cannot be removed
+# when this script exits. Either keep it on request, or hand it to a detached
+# process that removes it after a short grace period.
+ttl="${MDVIEW_TTL:-$DEFAULT_TTL}"
+[[ $ttl =~ ^[0-9]+$ ]] || die "MDVIEW_TTL must be a whole number of seconds"
+
+if ((keep || !open)); then
+    trap - EXIT
+    printf 'Preview: %s\n' "$out"
+    ((open)) || exit 0
+else
+    trap - EXIT
+    setsid bash -c 'sleep "$1"; rm -rf -- "$2"' _ "$ttl" "$tmp" >/dev/null 2>&1 &
+    disown 2>/dev/null || true
+fi
+
+if [[ -n ${BROWSER:-} ]]; then
+    # Word splitting is intentional: BROWSER may include arguments.
+    # shellcheck disable=SC2086
+    setsid $BROWSER "$out" >/dev/null 2>&1 &
+elif command -v xdg-open >/dev/null 2>&1; then
+    setsid xdg-open "$out" >/dev/null 2>&1 &
+elif command -v gio >/dev/null 2>&1; then
+    setsid gio open "$out" >/dev/null 2>&1 &
+elif command -v open >/dev/null 2>&1; then
+    setsid open "$out" >/dev/null 2>&1 &
+else
+    printf 'No opener found; open manually within %ss: %s\n' "$ttl" "$out" >&2
+fi
+
+disown 2>/dev/null || true

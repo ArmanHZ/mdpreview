@@ -1,0 +1,18 @@
+/* GitHub dark palette. Selected with --dark or MDVIEW_SCHEME=dark. */
+:root {
+  color-scheme: dark;
+
+  --page-bg: #0d1117;
+
+  --hl-keyword: #ff7b72;
+  --hl-datatype: #ffa657;
+  --hl-number: #79c0ff;
+  --hl-string: #a5d6ff;
+  --hl-comment: #8b949e;
+  --hl-function: #d2a8ff;
+  --hl-variable: #ffa657;
+  --hl-attribute: #79c0ff;
+  --hl-warning: #ffa657;
+  --hl-error: #ffa198;
+  --hl-error-bg: #f8514926;
+}

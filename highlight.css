@@ -1,0 +1,80 @@
+/* ------------------------------------------------------------------
+ * GitHub-style token colours for pandoc's syntax highlighting.
+ *
+ * Pandoc emits <span class="kw">...</span> etc. (enabled by
+ * --syntax-highlighting=pygments); its generated colour CSS is not used.
+ * The palette itself lives in theme-light.css / theme-dark.css and is
+ * consumed here through the --hl-* variables.
+ * ------------------------------------------------------------------ */
+
+.markdown-body span.kw,
+.markdown-body span.cf,
+.markdown-body span.im,
+.markdown-body span.pp {
+  color: var(--hl-keyword);
+}
+
+.markdown-body span.al {
+  color: var(--hl-keyword);
+  font-weight: 600;
+}
+
+.markdown-body span.dt {
+  color: var(--hl-datatype);
+}
+
+.markdown-body span.dv,
+.markdown-body span.bn,
+.markdown-body span.fl,
+.markdown-body span.cn {
+  color: var(--hl-number);
+}
+
+.markdown-body span.ch,
+.markdown-body span.st,
+.markdown-body span.sc,
+.markdown-body span.ss,
+.markdown-body span.vs {
+  color: var(--hl-string);
+}
+
+.markdown-body span.co,
+.markdown-body span.cv,
+.markdown-body span.do,
+.markdown-body span.an,
+.markdown-body span.in {
+  color: var(--hl-comment);
+  font-style: italic;
+}
+
+.markdown-body span.fu,
+.markdown-body span.bu {
+  color: var(--hl-function);
+}
+
+.markdown-body span.va {
+  color: var(--hl-variable);
+}
+
+.markdown-body span.at {
+  color: var(--hl-attribute);
+}
+
+.markdown-body span.ex {
+  color: var(--hl-number);
+}
+
+.markdown-body span.wa {
+  color: var(--hl-warning);
+}
+
+.markdown-body span.er {
+  color: var(--hl-error);
+  background-color: var(--hl-error-bg);
+}
+
+/* Operators and plain tokens keep the surrounding text colour. */
+.markdown-body span.op,
+.markdown-body span.ot {
+  color: inherit;
+}
