@@ -3,7 +3,7 @@ AI slop tool that uses GitHub's Markdown CSS files and Pandoc.
 
 Given a Markdown file, this tool creates a temp html file using Pandoc and opens that file using the user's default browser.
 
-All the CSS files are in this repo, so no external requests are being made outside.
+All the CSS files are in this repo, so no external requests are being made to fetch stuff.
 
 # Usage
 ```bash
