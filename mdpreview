@@ -5,7 +5,7 @@
 #
 # Uses pandoc plus the GitHub stylesheets, syntax palette, template and
 # page layout that live next to this script. The HTML is written to a
-# temporary directory only.
+# shared temp directory only.
 
 set -euo pipefail
 
@@ -35,8 +35,8 @@ Environment:
   MDVIEW_SCHEME Colour scheme: light or dark (flags take precedence).
   MDVIEW_TTL    Seconds before the temp file is removed (default: $DEFAULT_TTL).
 
-The HTML is written to a temp directory and removed automatically, so no
-preview files are left in the current directory.
+The HTML is written to a randomly named file in ${TMPDIR:-/tmp}/mdpreview
+and removed automatically, so no preview files are left behind.
 EOF
 }
 
@@ -102,10 +102,12 @@ src="$src_dir/$(basename -- "$src")"
 title="$(basename -- "$src")"
 [[ $title == *.* && -n ${title%.*} ]] && title="${title%.*}"
 
-tmp="$(mktemp -d "${TMPDIR:-/tmp}/mdpreview.XXXXXX")" || die "cannot create temp dir"
-out="$tmp/preview.html"
+tmpdir="${TMPDIR:-/tmp}/mdpreview"
+mkdir -p -- "$tmpdir" || die "cannot create temp dir: $tmpdir"
+[[ -d $tmpdir && -w $tmpdir ]] || die "unusable temp dir: $tmpdir"
+out="$(mktemp --suffix=.html "$tmpdir/preview.XXXXXX")" || die "cannot create temp file"
 
-cleanup() { rm -rf -- "$tmp"; }
+cleanup() { rm -f -- "$out"; }
 trap cleanup EXIT
 
 args=(
@@ -127,8 +129,8 @@ args=(
 
 pandoc "$src" "${args[@]}" --output "$out" || die "pandoc failed"
 
-# The browser opens asynchronously, so the temp directory cannot be removed
-# when this script exits. Either keep it on request, or hand it to a detached
+# The browser opens asynchronously, so the temp file cannot be removed when
+# this script exits. Either keep it on request, or hand it to a detached
 # process that removes it after a short grace period.
 ttl="${MDVIEW_TTL:-$DEFAULT_TTL}"
 [[ $ttl =~ ^[0-9]+$ ]] || die "MDVIEW_TTL must be a whole number of seconds"
@@ -139,7 +141,7 @@ if ((keep || !open)); then
     ((open)) || exit 0
 else
     trap - EXIT
-    setsid bash -c 'sleep "$1"; rm -rf -- "$2"' _ "$ttl" "$tmp" >/dev/null 2>&1 &
+    setsid bash -c 'sleep "$1"; rm -f -- "$2"' _ "$ttl" "$out" >/dev/null 2>&1 &
     disown 2>/dev/null || true
 fi
 

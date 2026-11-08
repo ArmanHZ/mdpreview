@@ -26,7 +26,7 @@ Environment:
   MDVIEW_SCHEME Colour scheme: light or dark (flags take precedence).
   MDVIEW_TTL    Seconds before the temp file is removed (default: 60).
 
-The HTML is written to a temp directory and removed automatically, so no
-preview files are left in the current directory.
+The HTML is written to a randomly named file in /tmp/mdpreview and removed
+automatically, so no preview files are left behind.
 ```
 
